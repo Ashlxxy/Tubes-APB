@@ -1,0 +1,430 @@
+:root {
+  --accent: #b6252a;
+  --dark-950: #0f0f0f;
+  --dark-900: #121212;
+  --dark-850: #151515;
+  --dark-800: #181818;
+  --dark-700: #222;
+  --dark-300: #a6a6a6;
+  --dark-200: #c7c7c7;
+  --dark-100: #e5e5e5;
+}
+
+.text-accent {
+  color: var(--accent) !important;
+}
+
+* {
+  box-sizing: border-box
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.bg-dark-950 {
+  background: var(--dark-950) !important;
+}
+
+.bg-dark-900 {
+  background: var(--dark-900) !important;
+}
+
+.bg-dark-800 {
+  background: var(--dark-800) !important;
+}
+
+.text-dark-300 {
+  color: var(--dark-300) !important;
+}
+
+.text-dark-200 {
+  color: var(--dark-200) !important;
+}
+
+.text-dark-100 {
+  color: var(--dark-100) !important;
+}
+
+.border-dark-700 {
+  border-color: var(--dark-700) !important;
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+  border: 1px solid var(--accent);
+}
+
+.btn-accent:hover {
+  filter: brightness(1.1);
+  color: #fff;
+}
+
+.btn-outline-accent {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+
+.btn-outline-accent:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-outline-accent-white {
+  border: 2px solid var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-outline-accent-white:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.bg-accent-soft {
+  background: rgba(182, 37, 42, .15) !important;
+  color: #fff;
+  border: 1px solid rgba(182, 37, 42, .25);
+}
+
+.link-accent {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.link-accent:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.form-control-dark,
+.form-select-dark {
+  background: var(--dark-850);
+  color: #fff;
+  border: 1px solid var(--dark-700);
+}
+
+.form-control-dark::placeholder {
+  color: var(--dark-300);
+}
+
+.dropdown-dark {
+  background: var(--dark-900);
+  border: 1px solid var(--dark-700);
+}
+
+.dropdown-dark .dropdown-item {
+  color: #fff;
+}
+
+.dropdown-dark .dropdown-item:hover {
+  background: var(--dark-800);
+}
+
+.card-dark {
+  background: var(--dark-900);
+  border: 1px solid var(--dark-700);
+}
+
+.table-dark {
+  --bs-table-bg: var(--dark-900);
+  --bs-table-striped-bg: var(--dark-800);
+  --bs-table-hover-bg: var(--dark-800);
+}
+
+.navbar.bg-dark-900 {
+  background: var(--dark-900) !important;
+}
+
+.input-group-text {
+  border-color: var(--dark-700) !important;
+}
+
+.brand-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.hero .skeleton {
+  background: linear-gradient(110deg, var(--dark-800) 8%, var(--dark-700) 18%, var(--dark-800) 33%);
+  background-size: 200% 100%;
+  animation: 1.2s shine linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position-x: -200%;
+  }
+}
+
+.card.song {
+  background: var(--dark-900);
+  border: 1px solid var(--dark-800);
+  transition: transform .2s ease, box-shadow .2s ease, border-color .2s;
+  cursor: pointer;
+}
+
+.card.song:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+}
+
+.card.song .cover {
+  height: 180px;
+  object-fit: cover;
+  border-radius: .75rem;
+}
+
+.badge-soft {
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid var(--dark-700);
+  color: #fff;
+}
+
+.list-group-dark .list-group-item {
+  background: var(--dark-900);
+  color: #fff;
+  border-color: var(--dark-700);
+}
+
+.auth-card {
+  width: 380px;
+}
+
+.btn-like.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.song-detail-cover {
+  max-width: 260px;
+  border-radius: 1rem;
+}
+
+.song-detail-box {
+  background: var(--dark-900);
+  border: 1px solid var(--dark-700);
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.btn-like:hover {
+  box-shadow: 0 0 12px rgba(182, 37, 42, 0.4);
+}
+
+.btn-like {
+  transition: all 0.25s ease;
+}
+
+.badge.bg-accent-soft {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+#commentList .list-group-item .small.text-dark-200 {
+  color: var(--dark-100) !important;
+  font-weight: 500;
+}
+
+#commentList .list-group-item .bi-person {
+  color: var(--accent) !important;
+  margin-right: 4px;
+}
+
+#commentList .list-group-item .small.text-dark-200 i,
+#commentList .list-group-item .small.text-dark-200 {
+  color: var(--accent) !important;
+  font-weight: 600;
+}
+
+#commentList .list-group-item div:last-child {
+  color: var(--dark-100);
+  font-weight: 400;
+}
+
+#commentList .list-group-item {
+  background: var(--dark-900) !important;
+  border-color: var(--dark-700) !important;
+}
+
+#commentList .list-group-item div:last-child {
+  color: var(--dark-100) !important;
+  font-weight: 400;
+}
+
+.card.song .fw-semibold {
+  color: var(--dark-100) !important;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+.card.song .small.text-dark-300 {
+  color: var(--dark-200) !important;
+}
+
+.search-results-bar {
+  position: relative;
+  background: var(--dark-900);
+  border-bottom: 1px solid var(--dark-700);
+}
+
+.search-results-bar .card.song .cover {
+  height: 140px;
+}
+
+.d-none {
+  display: none !important;
+}
+
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.fade-in {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.6s ease-out forwards;
+}
+
+/* Modern Form Inputs */
+.form-control-dark {
+  background: var(--dark-850);
+  border: 1px solid var(--dark-700);
+  color: #fff !important;
+  transition: all 0.3s ease;
+}
+
+input,
+textarea,
+select {
+  color: #fff !important;
+}
+
+.form-control-dark:focus {
+  background: var(--dark-800);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(182, 37, 42, 0.15);
+}
+
+/* Floating Labels (Optional if using standard Bootstrap floating labels, but here custom) */
+.form-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
+}
+
+.form-control-dark:focus+.form-label,
+.form-control-dark:focus~.form-label {
+  color: var(--accent) !important;
+}
+
+/* Auth Card Enhancements */
+.auth-card {
+  border: 1px solid var(--dark-700);
+  background: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(10px);
+}
+
+/* Custom Audio Player */
+audio.custom-audio {
+  height: 40px;
+  border-radius: 20px;
+  background: #f1f3f4;
+}
+
+audio.custom-audio::-webkit-media-controls-panel {
+  background: #f1f3f4;
+}
+
+/* Custom Range Input Styling for Player */
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  background: transparent;
+}
+
+input[type=range]:focus {
+  outline: none;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  margin-top: -5px;
+  transition: transform 0.1s;
+}
+
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: var(--dark-700);
+  border-radius: 2px;
+}
+
+/* Firefox */
+input[type=range]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+input[type=range]::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type=range]::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  cursor: pointer;
+  background: var(--dark-700);
+  border-radius: 2px;
+}
