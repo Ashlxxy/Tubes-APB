@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../models/playlist.dart';
 import '../services/api_service.dart';
 import '../providers/audio_provider.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -69,14 +70,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           onPressed: () {},
                         ),
                         const SizedBox(width: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/img/default-cover.jpg',
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.cover,
-                            errorBuilder: (c, e, s) => const Icon(Icons.person, color: Colors.white, size: 20),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Image.asset(
+                              'assets/img/default-cover.jpg',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, e, s) => const Icon(Icons.person, color: Colors.white, size: 20),
+                            ),
                           ),
                         ),
                       ],

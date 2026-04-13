@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/main_shell.dart';
+import 'screens/welcome_screen.dart';
 import 'services/api_service.dart';
 import 'providers/audio_provider.dart';
 
@@ -38,7 +38,7 @@ class UKMBandApp extends StatelessWidget {
           unselectedItemColor: Colors.grey,
         ),
       ),
-      home: const MainShell(),
+      home: const WelcomeScreen(),
     );
   }
 }
