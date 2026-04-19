@@ -1,77 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class LibraryScreen extends StatelessWidget {
+import '../models/history_entry.dart';
+import '../models/playlist.dart';
+import '../services/api_service.dart';
+
+class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
-  Widget _buildChip(String label) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade700),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(fontSize: 13, color: Colors.white),
-      ),
-    );
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends State<LibraryScreen> {
+  late Future<_LibraryData> _libraryFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _libraryFuture = _loadLibraryData();
   }
 
-  Widget _buildLibraryItem(String title, String subtitle, String imagePath, {bool isCircle = false, bool isGradient = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              shape: isCircle ? BoxShape.circle : BoxShape.rectangle,
-              borderRadius: isCircle ? null : BorderRadius.circular(8),
-              gradient: isGradient ? const LinearGradient(
-                colors: [Color(0xFF450af5), Color(0xFFc4efd9)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ) : null,
-              color: Colors.grey[800],
-            ),
-            child: ClipRRect(
-              borderRadius: isCircle ? BorderRadius.circular(100) : BorderRadius.circular(8),
-              child: isGradient 
-                ? const Icon(Icons.favorite, color: Colors.white, size: 40)
-                : Image.asset(
-                    imagePath,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => const Icon(Icons.music_note, color: Colors.grey, size: 40),
-                  ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            if (isGradient) const Icon(Icons.push_pin, color: Colors.green, size: 12),
-            if (isGradient) const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                subtitle,
-                style: const TextStyle(color: Colors.grey, fontSize: 12),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        )
-      ],
+  Future<_LibraryData> _loadLibraryData() async {
+    final api = context.read<ApiService>();
+    final playlists = await api.fetchPlaylists();
+    final history = await api.fetchHistory();
+    return _LibraryData(playlists: playlists, history: history);
+  }
+
+  Widget _buildCover(String source, {double size = 52}) {
+    final fallback = Container(
+      width: size,
+      height: size,
+      color: Colors.grey.shade800,
+      child: const Icon(Icons.music_note, color: Colors.white),
     );
+
+    if (source.startsWith('http://') || source.startsWith('https://')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.network(
+          source,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallback,
+        ),
+      );
+    }
+
+    if (source.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.asset(
+          source,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => fallback,
+        ),
+      );
+    }
+
+    return fallback;
+  }
+
+  String _formatPlayedAt(DateTime? time) {
+    if (time == null) {
+      return '-';
+    }
+
+    final twoDigitDay = time.day.toString().padLeft(2, '0');
+    final twoDigitMonth = time.month.toString().padLeft(2, '0');
+    final twoDigitHour = time.hour.toString().padLeft(2, '0');
+    final twoDigitMinute = time.minute.toString().padLeft(2, '0');
+
+    return '$twoDigitDay/$twoDigitMonth ${time.year} $twoDigitHour:$twoDigitMinute';
   }
 
   @override
@@ -79,90 +83,120 @@ class LibraryScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/img/default-cover.jpg',
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(Icons.person, color: Colors.white, size: 24),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Your Library',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.search, size: 28),
-                  const SizedBox(width: 16),
-                  const Icon(Icons.add, size: 28),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                child: Row(
-                  children: [
-                    _buildChip('Playlists'),
-                    _buildChip('Podcasts'),
-                    _buildChip('Artists'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+        child: FutureBuilder<_LibraryData>(
+          future: _libraryFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.swap_vert, size: 18),
-                      SizedBox(width: 8),
-                      Text('Recents', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const Text(
+                        'Gagal memuat pustaka.',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        snapshot.error.toString(),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _libraryFuture = _loadLibraryData();
+                          });
+                        },
+                        child: const Text('Coba Lagi'),
+                      ),
                     ],
                   ),
-                  Icon(Icons.grid_view, size: 18),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: GridView.count(
-                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 80),
-                crossAxisCount: 3,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                physics: const BouncingScrollPhysics(),
-                children: [
-                  _buildLibraryItem('Liked Songs', 'Playlist • 13 s...', '', isGradient: true),
-                  _buildLibraryItem('Bruno Mars', 'Artist', 'assets/img/c1.jpg', isCircle: true),
-                  _buildLibraryItem('New Episodes', 'Updated Jan 11...', 'assets/img/c2.jpg'),
-                  _buildLibraryItem('CANDYRELLA', 'Playlist • Ashlxy', 'assets/img/c3.jpg'),
-                  _buildLibraryItem('Rintik Sedu', 'Podcast • Rintiks...', 'assets/img/c4.jpg'),
-                  _buildLibraryItem('MENDOAN', 'Podcast • DONO...', 'assets/img/c5.jpg'),
-                  _buildLibraryItem('PODCAST ANCUR', 'Podcast • Patra, ...', 'assets/img/c6.jpg'),
-                  _buildLibraryItem('Satu Persen', 'Podcast', 'assets/img/c7.jpg'),
-                  _buildLibraryItem('VINIAR', 'Podcast • VOLIX.', 'assets/img/c1.jpg'),
-                ],
-              ),
-            ),
-          ],
+                ),
+              );
+            }
+
+            final data = snapshot.data ?? const _LibraryData(playlists: [], history: []);
+
+            return ListView(
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 96),
+              children: [
+                const Text(
+                  'Perpustakaan Anda',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Playlist Saya',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                if (data.playlists.isEmpty)
+                  const Text(
+                    'Belum ada playlist.',
+                    style: TextStyle(color: Colors.grey),
+                  )
+                else
+                  ...data.playlists.map((playlist) {
+                    final source = playlist.songs.isNotEmpty
+                        ? playlist.songs.first.displayCover
+                        : 'assets/img/default-cover.jpg';
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: _buildCover(source),
+                      title: Text(
+                        playlist.name,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text('${playlist.songs.length} lagu'),
+                    );
+                  }),
+                const SizedBox(height: 20),
+                const Text(
+                  'Baru Diputar',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                if (data.history.isEmpty)
+                  const Text(
+                    'Riwayat pemutaran masih kosong.',
+                    style: TextStyle(color: Colors.grey),
+                  )
+                else
+                  ...data.history.where((entry) => entry.song != null).map((entry) {
+                    final song = entry.song!;
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: _buildCover(song.displayCover),
+                      title: Text(
+                        song.title,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text('${song.artist} • ${_formatPlayedAt(entry.playedAt)}'),
+                    );
+                  }),
+              ],
+            );
+          },
         ),
       ),
     );
   }
+}
+
+class _LibraryData {
+  final List<Playlist> playlists;
+  final List<HistoryEntry> history;
+
+  const _LibraryData({
+    required this.playlists,
+    required this.history,
+  });
 }

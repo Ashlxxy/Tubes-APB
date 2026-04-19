@@ -40,27 +40,3 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::resource('songs', AdminSongController::class);
     Route::get('/feedback', [FeedbackController::class, 'adminIndex'])->name('feedback.index');
 });
-
-// --- REST API Endpoints For Mobile App ---
-Route::prefix('api')->group(function () {
-    Route::get('/songs', function () {
-        return response()->json([
-            'success' => true,
-            'data' => \App\Models\Song::all()
-        ]);
-    });
-    
-    Route::get('/playlists', function () {
-        return response()->json([
-            'success' => true,
-            'data' => \App\Models\Playlist::with('songs')->get()
-        ]);
-    });
-    
-    Route::get('/history', function () {
-        return response()->json([
-            'success' => true,
-            'data' => \App\Models\History::with('song')->orderBy('played_at', 'desc')->get()
-        ]);
-    });
-});

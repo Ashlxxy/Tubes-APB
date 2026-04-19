@@ -15,7 +15,9 @@ class Playlist {
 
   factory Playlist.fromJson(Map<String, dynamic> json) {
     var songsList = json['songs'] as List? ?? [];
-    List<Song> songs = songsList.map((i) => Song.fromJson(i)).toList();
+    List<Song> songs = songsList
+        .map((item) => Song.fromJson(item as Map<String, dynamic>))
+        .toList();
 
     return Playlist(
       id: json['id'] ?? 0,

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/auth_provider.dart';
 import 'welcome_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -6,6 +9,9 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
+    final user = authProvider.user;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profil Saya'),
@@ -48,8 +54,8 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             // Name
-            const Text(
-              'Pengguna Mock',
+            Text(
+              user?.name ?? 'Pengguna',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -58,7 +64,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 8),
             // Email
             Text(
-              'pengguna@telkomuniversity.ac.id',
+              user?.email ?? '-',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey.shade400,
@@ -92,16 +98,32 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 32),
             // Logout Button
             ElevatedButton.icon(
-              onPressed: () {
-                // Navigasi ke halaman Welcome dan hapus rute sebelumnya
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
-                  (route) => false,
-                );
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('Keluar (Log Out)'),
+              onPressed: authProvider.isLoading
+                  ? null
+                  : () async {
+                      await context.read<AuthProvider>().logout();
+
+                      if (!context.mounted) {
+                        return;
+                      }
+
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                        (route) => false,
+                      );
+                    },
+              icon: authProvider.isLoading
+                  ? const SizedBox(
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.logout),
+              label: Text(authProvider.isLoading ? 'Memproses...' : 'Keluar (Log Out)'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade900,
                 foregroundColor: Colors.white,
