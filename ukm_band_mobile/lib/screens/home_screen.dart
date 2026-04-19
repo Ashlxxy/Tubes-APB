@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/song.dart';
+
 import '../models/playlist.dart';
-import '../services/api_service.dart';
+import '../models/song.dart';
 import '../providers/audio_provider.dart';
+import '../providers/music_provider.dart';
+import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/song_artwork.dart';
 import 'profile_screen.dart';
+import 'song_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,302 +19,679 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<List<Song>> _songsFuture;
-  late Future<List<Playlist>> _playlistsFuture;
-  List<Song> _songsCache = const [];
-
   @override
   void initState() {
     super.initState();
-    final api = Provider.of<ApiService>(context, listen: false);
-    _songsFuture = api.fetchSongs().then((songs) {
-      _songsCache = songs;
-      return songs;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MusicProvider>().load();
     });
-    _playlistsFuture = api.fetchPlaylists();
-  }
-
-  Widget _buildCoverImage({
-    required String source,
-    required double width,
-    required double height,
-    BorderRadius? borderRadius,
-  }) {
-    final fallback = Container(
-      width: width,
-      height: height,
-      color: Colors.grey,
-      child: const Center(child: Icon(Icons.music_note, color: Colors.white)),
-    );
-
-    Widget image;
-    if (source.startsWith('http://') || source.startsWith('https://')) {
-      image = Image.network(
-        source,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => fallback,
-      );
-    } else if (source.isNotEmpty) {
-      image = Image.asset(
-        source,
-        width: width,
-        height: height,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) => fallback,
-      );
-    } else {
-      image = fallback;
-    }
-
-    if (borderRadius != null) {
-      return ClipRRect(borderRadius: borderRadius, child: image);
-    }
-
-    return image;
   }
 
   String getGreeting() {
-    var hour = DateTime.now().hour;
+    final hour = DateTime.now().hour;
     if (hour < 12) return 'Selamat Pagi';
     if (hour < 17) return 'Selamat Siang';
     return 'Selamat Malam';
   }
 
+  Future<void> _playSong(Song song, List<Song> queue) async {
+    final apiService = context.read<ApiService>();
+    final audioProvider = context.read<AudioProvider>();
+
+    try {
+      await apiService.recordPlay(song.id);
+    } catch (_) {
+      // Keep playback running even if tracking API fails.
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    await audioProvider.playSong(song, queue: queue);
+  }
+
+  void _openSong(Song song, List<Song> queue) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SongDetailScreen(song: song, queue: queue),
+      ),
+    );
+  }
+
+  Future<void> _toggleLike(Song song) async {
+    try {
+      await context.read<MusicProvider>().toggleLike(song);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal memperbarui like: $error')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF4A0E17), // Dark Telkom Red tint
-              Color(0xFF121212),
-            ],
-            begin: Alignment.topLeft,
-            end: FractionalOffset(0.0, 0.3),
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(
-              left: 16,
-              right: 16,
-              top: 16,
-              bottom: 100,
+    return Consumer<MusicProvider>(
+      builder: (context, music, _) {
+        final songs = music.songs;
+        final popularSongs = music.popularSongs.take(8).toList();
+        final latestSongs = songs.take(10).toList();
+
+        return Scaffold(
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF4A0E17), AppColors.ink],
+                begin: Alignment.topLeft,
+                end: FractionalOffset(0.2, 0.55),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      getGreeting(),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_none),
-                          onPressed: () {},
-                        ),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ProfileScreen(),
-                              ),
-                            );
-                          },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.asset(
-                              'assets/img/default-cover.jpg',
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.cover,
-                              errorBuilder: (c, e, s) => const Icon(
-                                Icons.person,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
+            child: SafeArea(
+              child: RefreshIndicator(
+                onRefresh: () => context.read<MusicProvider>().refresh(),
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(18, 18, 18, 118),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate([
+                          _HomeHeader(greeting: getGreeting()),
+                          const SizedBox(height: 22),
+                          _HeroPanel(
+                            song: latestSongs.isNotEmpty
+                                ? latestSongs.first
+                                : null,
+                            queue: songs,
+                            onPlay: _playSong,
+                            onOpen: _openSong,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 26),
+                          if (music.isLoading && !music.hasLoaded)
+                            const _LoadingState()
+                          else if (music.errorMessage != null && songs.isEmpty)
+                            _ErrorState(
+                              message: music.errorMessage!,
+                              onRetry: () =>
+                                  context.read<MusicProvider>().refresh(),
+                            )
+                          else ...[
+                            _PlaylistStrip(
+                              playlists: music.playlists,
+                              onPlay: (playlist) {
+                                if (playlist.songs.isNotEmpty) {
+                                  _playSong(
+                                    playlist.songs.first,
+                                    playlist.songs,
+                                  );
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 28),
+                            _SectionTitle(
+                              title: 'Paling Populer',
+                              subtitle: 'Berdasarkan pemutaran dan like',
+                            ),
+                            const SizedBox(height: 14),
+                            _HorizontalSongList(
+                              songs: popularSongs,
+                              queue: popularSongs,
+                              onOpen: _openSong,
+                              onPlay: _playSong,
+                              onLike: _toggleLike,
+                            ),
+                            const SizedBox(height: 30),
+                            _SectionTitle(
+                              title: 'Recently Added Songs',
+                              subtitle: 'Rilis terbaru UKM Band Telkom',
+                            ),
+                            const SizedBox(height: 14),
+                            _HorizontalSongList(
+                              songs: latestSongs,
+                              queue: latestSongs,
+                              onOpen: _openSong,
+                              onPlay: _playSong,
+                              onLike: _toggleLike,
+                            ),
+                            const SizedBox(height: 30),
+                            _SectionTitle(
+                              title: 'Deskripsi Lagu',
+                              subtitle: 'Baca cerita singkat sebelum mendengar',
+                            ),
+                            const SizedBox(height: 14),
+                            ...songs
+                                .take(5)
+                                .map(
+                                  (song) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: _DescriptionTile(
+                                      song: song,
+                                      onOpen: () => _openSong(song, songs),
+                                      onPlay: () => _playSong(song, songs),
+                                    ),
+                                  ),
+                                ),
+                          ],
+                        ]),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
 
-                // Playlists Grid (like Spotify Top 6)
-                FutureBuilder<List<Playlist>>(
-                  future: _playlistsFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final playlists = snapshot.data ?? [];
-                    if (playlists.isEmpty) {
-                      return const SizedBox();
-                    }
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                      itemCount: playlists.length > 6 ? 6 : playlists.length,
-                      itemBuilder: (context, index) {
-                        final playlist = playlists[index];
-                        final coverSource = playlist.songs.isNotEmpty
-                            ? playlist.songs.first.displayCover
-                            : 'assets/img/default-cover.jpg';
+class _HomeHeader extends StatelessWidget {
+  final String greeting;
 
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Row(
-                            children: [
-                              _buildCoverImage(
-                                source: coverSource,
-                                width: 56,
-                                height: 56,
-                                borderRadius: const BorderRadius.horizontal(
-                                  left: Radius.circular(4),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  playlist.name,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
+  const _HomeHeader({required this.greeting});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                greeting,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
                 ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Temukan ritme UKM Band hari ini.',
+                style: TextStyle(color: AppColors.muted),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Profil',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            );
+          },
+          icon: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.asset(
+              'assets/img/default-cover.jpg',
+              width: 36,
+              height: 36,
+              fit: BoxFit.cover,
+              errorBuilder: (c, e, s) => const Icon(Icons.person_rounded),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-                const SizedBox(height: 32),
+class _HeroPanel extends StatelessWidget {
+  final Song? song;
+  final List<Song> queue;
+  final Future<void> Function(Song song, List<Song> queue) onPlay;
+  final void Function(Song song, List<Song> queue) onOpen;
 
-                // Recent Songs
-                const Text(
-                  'Recently Added Songs',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+  const _HeroPanel({
+    required this.song,
+    required this.queue,
+    required this.onPlay,
+    required this.onOpen,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final featured = song;
+
+    return AppGlassCard(
+      padding: const EdgeInsets.all(14),
+      onTap: featured == null ? null : () => onOpen(featured, queue),
+      child: featured == null
+          ? const SizedBox(
+              height: 130,
+              child: Center(
+                child: Text(
+                  'Belum ada lagu yang tersedia.',
+                  style: TextStyle(color: AppColors.muted),
                 ),
-                const SizedBox(height: 16),
-
-                FutureBuilder<List<Song>>(
-                  future: _songsFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    final songs = snapshot.data ?? [];
-                    if (songs.isEmpty) {
-                      return const Text('Belum ada lagu yang tersedia.');
-                    }
-                    return SizedBox(
-                      height: 230,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: songs.length,
-                        itemBuilder: (context, index) {
-                          final song = songs[index];
-                          return GestureDetector(
-                            onTap: () async {
-                              final apiService = context.read<ApiService>();
-                              final audioProvider = context
-                                  .read<AudioProvider>();
-
-                              try {
-                                await apiService.recordPlay(song.id);
-                              } catch (_) {
-                                // Keep playback running even if tracking API fails.
-                              }
-
-                              if (!mounted) {
-                                return;
-                              }
-
-                              await audioProvider.playSong(
-                                song,
-                                queue: _songsCache,
-                              );
-                            },
-                            child: Container(
-                              width: 140,
-                              margin: const EdgeInsets.only(right: 16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Image
-                                  Container(
-                                    width: 140,
-                                    height: 140,
-                                    color: Colors.grey[800],
-                                    child: _buildCoverImage(
-                                      source: song.displayCover,
-                                      width: 140,
-                                      height: 140,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    song.title,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    song.artist,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
+              ),
+            )
+          : Row(
+              children: [
+                SongArtwork(
+                  source: featured.displayCover,
+                  size: 112,
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: const Text(
+                          'Terbaru',
+                          style: TextStyle(
+                            color: AppColors.accentHot,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                          ),
+                        ),
                       ),
-                    );
-                  },
+                      const SizedBox(height: 10),
+                      Text(
+                        featured.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                          height: 1.1,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        featured.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: AppColors.muted),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: () => onPlay(featured, queue),
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: const Text('Putar'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _PlaylistStrip extends StatelessWidget {
+  final List<Playlist> playlists;
+  final ValueChanged<Playlist> onPlay;
+
+  const _PlaylistStrip({required this.playlists, required this.onPlay});
+
+  @override
+  Widget build(BuildContext context) {
+    if (playlists.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionTitle(
+          title: 'Playlist Saya',
+          subtitle: 'Putar koleksi yang sudah kamu susun',
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 2.72,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          itemCount: playlists.length > 6 ? 6 : playlists.length,
+          itemBuilder: (context, index) {
+            final playlist = playlists[index];
+            final cover = playlist.songs.isNotEmpty
+                ? playlist.songs.first.displayCover
+                : 'assets/img/default-cover.jpg';
+
+            return AppGlassCard(
+              padding: EdgeInsets.zero,
+              onTap: playlist.songs.isEmpty ? null : () => onPlay(playlist),
+              child: Row(
+                children: [
+                  SongArtwork(
+                    source: cover,
+                    size: 58,
+                    borderRadius: const BorderRadius.horizontal(
+                      left: Radius.circular(24),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      playlist.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _HorizontalSongList extends StatelessWidget {
+  final List<Song> songs;
+  final List<Song> queue;
+  final void Function(Song song, List<Song> queue) onOpen;
+  final Future<void> Function(Song song, List<Song> queue) onPlay;
+  final ValueChanged<Song> onLike;
+
+  const _HorizontalSongList({
+    required this.songs,
+    required this.queue,
+    required this.onOpen,
+    required this.onPlay,
+    required this.onLike,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (songs.isEmpty) {
+      return const AppGlassCard(
+        child: Text(
+          'Belum ada lagu yang tersedia.',
+          style: TextStyle(color: AppColors.muted),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 246,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        itemCount: songs.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 14),
+        itemBuilder: (context, index) {
+          final song = songs[index];
+          return _SongCard(
+            song: song,
+            onOpen: () => onOpen(song, queue),
+            onPlay: () => onPlay(song, queue),
+            onLike: () => onLike(song),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SongCard extends StatelessWidget {
+  final Song song;
+  final VoidCallback onOpen;
+  final VoidCallback onPlay;
+  final VoidCallback onLike;
+
+  const _SongCard({
+    required this.song,
+    required this.onOpen,
+    required this.onPlay,
+    required this.onLike,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 154,
+      child: AppGlassCard(
+        padding: const EdgeInsets.all(10),
+        onTap: onOpen,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                SongArtwork(source: song.displayCover, size: 134),
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: InkWell(
+                    onTap: onPlay,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(999),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.35),
+                            blurRadius: 14,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.play_arrow_rounded),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              song.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              song.artist,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                InkWell(
+                  onTap: onLike,
+                  borderRadius: BorderRadius.circular(999),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 6,
+                    ),
+                    child: Icon(
+                      song.isLiked
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      size: 20,
+                      color: song.isLiked
+                          ? AppColors.accentHot
+                          : AppColors.muted,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${song.likes}',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                const Icon(
+                  Icons.mode_comment_outlined,
+                  size: 18,
+                  color: AppColors.muted,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DescriptionTile extends StatelessWidget {
+  final Song song;
+  final VoidCallback onOpen;
+  final VoidCallback onPlay;
+
+  const _DescriptionTile({
+    required this.song,
+    required this.onOpen,
+    required this.onPlay,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      onTap: onOpen,
+      child: Row(
+        children: [
+          SongArtwork(
+            source: song.displayCover,
+            size: 72,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  song.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  song.description.isEmpty ? song.artist : song.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
           ),
+          IconButton.filledTonal(
+            tooltip: 'Putar lagu',
+            onPressed: onPlay,
+            icon: const Icon(Icons.play_arrow_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SectionTitle({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                style: const TextStyle(color: AppColors.muted, fontSize: 12),
+              ),
+            ],
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 42),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorState({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      child: Column(
+        children: [
+          const Icon(Icons.wifi_off_rounded, color: AppColors.accentHot),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.muted),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text('Coba Lagi'),
+          ),
+        ],
       ),
     );
   }

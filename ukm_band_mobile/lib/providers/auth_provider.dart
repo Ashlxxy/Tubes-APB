@@ -22,7 +22,8 @@ class AuthProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
   String? get errorMessage => _errorMessage;
-  bool get isAuthenticated => _user != null && _token != null && _token!.isNotEmpty;
+  bool get isAuthenticated =>
+      _user != null && _token != null && _token!.isNotEmpty;
 
   Future<void> initialize() async {
     if (_isInitialized) {
@@ -53,10 +54,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<bool> login({required String email, required String password}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();

@@ -3,7 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../models/song.dart';
 import '../providers/audio_provider.dart';
+import '../providers/music_provider.dart';
 import '../services/api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/song_artwork.dart';
+import 'song_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -13,15 +17,14 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  late Future<List<Song>> _songsFuture;
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _songsFuture = context.read<ApiService>().fetchSongs();
-    _searchController.addListener(() {
-      setState(() {});
+    _searchController.addListener(() => setState(() {}));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<MusicProvider>().load();
     });
   }
 
@@ -31,286 +34,245 @@ class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
-  Widget _buildCover(String source) {
-    final fallback = Container(
-      width: 56,
-      height: 56,
-      color: Colors.grey.shade800,
-      child: const Icon(Icons.music_note, color: Colors.white),
-    );
+  Future<void> _playSong(Song song, List<Song> queue) async {
+    final apiService = context.read<ApiService>();
+    final audioProvider = context.read<AudioProvider>();
 
-    if (source.startsWith('http://') || source.startsWith('https://')) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.network(
-          source,
-          width: 56,
-          height: 56,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => fallback,
-        ),
-      );
+    try {
+      await apiService.recordPlay(song.id);
+    } catch (_) {
+      // Playback should continue even when tracking fails.
     }
 
-    if (source.isNotEmpty) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(6),
-        child: Image.asset(
-          source,
-          width: 56,
-          height: 56,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => fallback,
-        ),
-      );
+    if (!mounted) {
+      return;
     }
 
-    return fallback;
+    await audioProvider.playSong(song, queue: queue);
   }
 
-  Widget _buildCategoryCard(String title, Color color, String imagePath) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-      ),
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ),
-          Positioned(
-            right: -15,
-            bottom: -5,
-            child: Transform.rotate(
-              angle: 0.4,
-              child: Image.asset(
-                imagePath,
-                width: 70,
-                height: 70,
-                fit: BoxFit.cover,
-                errorBuilder: (c, e, s) => Container(
-                  width: 70,
-                  height: 70,
-                  color: Colors.grey.withValues(alpha: 0.5),
-                  child: const Icon(Icons.music_note, color: Colors.black26),
-                ),
-              ),
-            ),
-          ),
-        ],
+  void _openSong(Song song, List<Song> queue) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SongDetailScreen(song: song, queue: queue),
       ),
     );
+  }
+
+  Future<void> _toggleLike(Song song) async {
+    try {
+      await context.read<MusicProvider>().toggleLike(song);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal memperbarui like: $error')));
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final query = _searchController.text.trim().toLowerCase();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: 80,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Consumer<MusicProvider>(
+      builder: (context, music, _) {
+        final filtered = music.songs.where((song) {
+          if (query.isEmpty) {
+            return true;
+          }
+          return song.title.toLowerCase().contains(query) ||
+              song.artist.toLowerCase().contains(query);
+        }).toList();
+
+        return Scaffold(
+          backgroundColor: AppColors.ink,
+          body: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: () => context.read<MusicProvider>().refresh(),
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 118),
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      'assets/img/default-cover.jpg',
-                      width: 32,
-                      height: 32,
-                      fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => const Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: 24,
-                      ),
+                  Text(
+                    'Cari',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(height: 6),
                   const Text(
-                    'Cari',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    'Temukan lagu, artis, dan cerita UKM Band.',
+                    style: TextStyle(color: AppColors.muted),
                   ),
-                  const Spacer(),
-                  const Icon(Icons.camera_alt_outlined, size: 28),
+                  const SizedBox(height: 18),
+                  TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Cari lagu atau artis',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Bersihkan pencarian',
+                              onPressed: _searchController.clear,
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  if (music.isLoading && !music.hasLoaded)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 42),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (music.errorMessage != null && music.songs.isEmpty)
+                    _SearchEmptyState(
+                      icon: Icons.wifi_off_rounded,
+                      title: 'Gagal memuat lagu',
+                      message: music.errorMessage!,
+                    )
+                  else if (filtered.isEmpty)
+                    _SearchEmptyState(
+                      icon: Icons.search_off_rounded,
+                      title: 'Lagu tidak ditemukan',
+                      message:
+                          'Coba cari judul atau nama artis dengan kata lain.',
+                    )
+                  else ...[
+                    Text(
+                      query.isEmpty
+                          ? 'Semua Lagu'
+                          : 'Hasil pencarian (${filtered.length})',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...filtered.map(
+                      (song) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _SearchSongTile(
+                          song: song,
+                          onOpen: () => _openSong(song, filtered),
+                          onPlay: () => _playSong(song, filtered),
+                          onLike: () => _toggleLike(song),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-              const SizedBox(height: 20),
-              Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    const Icon(Icons.search, color: Colors.black54, size: 28),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        style: const TextStyle(color: Colors.black87),
-                        decoration: const InputDecoration(
-                          hintText: 'Cari lagu atau artis',
-                          hintStyle: TextStyle(color: Colors.black54),
-                          border: InputBorder.none,
-                        ),
-                      ),
-                    ),
-                    if (_searchController.text.isNotEmpty)
-                      IconButton(
-                        onPressed: () {
-                          _searchController.clear();
-                        },
-                        icon: const Icon(Icons.close, color: Colors.black54),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              FutureBuilder<List<Song>>(
-                future: _songsFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Text(
-                      snapshot.error.toString(),
-                      style: const TextStyle(color: Colors.redAccent),
-                    );
-                  }
-
-                  final songs = snapshot.data ?? [];
-                  final filtered = songs.where((song) {
-                    if (query.isEmpty) {
-                      return true;
-                    }
-                    return song.title.toLowerCase().contains(query) ||
-                        song.artist.toLowerCase().contains(query);
-                  }).toList();
-
-                  if (query.isNotEmpty) {
-                    if (filtered.isEmpty) {
-                      return const Text(
-                        'Lagu tidak ditemukan.',
-                        style: TextStyle(color: Colors.grey),
-                      );
-                    }
-
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filtered.length,
-                      separatorBuilder: (context, index) =>
-                          const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final song = filtered[index];
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: _buildCover(song.displayCover),
-                          title: Text(song.title),
-                          subtitle: Text(song.artist),
-                          onTap: () async {
-                            final apiService = context.read<ApiService>();
-                            final audioProvider = context.read<AudioProvider>();
-
-                            try {
-                              await apiService.recordPlay(song.id);
-                            } catch (_) {
-                              // Playback should continue even when tracking fails.
-                            }
-
-                            if (!mounted) {
-                              return;
-                            }
-
-                            await audioProvider.playSong(song, queue: filtered);
-                          },
-                        );
-                      },
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Start browsing',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.6,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        children: [
-                          _buildCategoryCard(
-                            'Music',
-                            const Color(0xFFDC148C),
-                            'assets/img/c1.jpg',
-                          ),
-                          _buildCategoryCard(
-                            'Podcasts',
-                            const Color(0xFF006450),
-                            'assets/img/c2.jpg',
-                          ),
-                          _buildCategoryCard(
-                            'Live Events',
-                            const Color(0xFF8400E7),
-                            'assets/img/c3.jpg',
-                          ),
-                          _buildCategoryCard(
-                            'K-Pop ON!',
-                            const Color(0xFF148A08),
-                            'assets/img/c4.jpg',
-                          ),
-                          _buildCategoryCard(
-                            'New Releases',
-                            const Color(0xFFE8115B),
-                            'assets/img/c5.jpg',
-                          ),
-                          _buildCategoryCard(
-                            'Pop',
-                            const Color(0xFF509BF5),
-                            'assets/img/c6.jpg',
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ],
+            ),
           ),
-        ),
+        );
+      },
+    );
+  }
+}
+
+class _SearchSongTile extends StatelessWidget {
+  final Song song;
+  final VoidCallback onOpen;
+  final VoidCallback onPlay;
+  final VoidCallback onLike;
+
+  const _SearchSongTile({
+    required this.song,
+    required this.onOpen,
+    required this.onPlay,
+    required this.onLike,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      padding: const EdgeInsets.all(12),
+      onTap: onOpen,
+      child: Row(
+        children: [
+          SongArtwork(
+            source: song.displayCover,
+            size: 62,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  song.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  song.artist,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${song.plays} plays | ${song.likes} likes',
+                  style: const TextStyle(color: AppColors.muted, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: song.isLiked ? 'Batal like' : 'Like',
+            onPressed: onLike,
+            icon: Icon(
+              song.isLiked
+                  ? Icons.favorite_rounded
+                  : Icons.favorite_border_rounded,
+              color: song.isLiked ? AppColors.accentHot : AppColors.muted,
+            ),
+          ),
+          IconButton.filled(
+            tooltip: 'Putar lagu',
+            onPressed: onPlay,
+            icon: const Icon(Icons.play_arrow_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SearchEmptyState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String message;
+
+  const _SearchEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.accentHot, size: 34),
+          const SizedBox(height: 12),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.muted),
+          ),
+        ],
       ),
     );
   }

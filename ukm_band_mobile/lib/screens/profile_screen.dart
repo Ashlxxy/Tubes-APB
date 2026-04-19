@@ -56,19 +56,13 @@ class ProfileScreen extends StatelessWidget {
             // Name
             Text(
               user?.name ?? 'Pengguna',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             // Email
             Text(
               user?.email ?? '-',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey.shade400,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
             ),
             const SizedBox(height: 48),
             // Edit Profile Button (Mock)
@@ -78,7 +72,9 @@ class ProfileScreen extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fitur edit profil segera hadir')),
+                  const SnackBar(
+                    content: Text('Fitur edit profil segera hadir'),
+                  ),
                 );
               },
             ),
@@ -90,7 +86,9 @@ class ProfileScreen extends StatelessWidget {
               trailing: const Icon(Icons.chevron_right),
               onTap: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Fitur pengaturan segera hadir')),
+                  const SnackBar(
+                    content: Text('Fitur pengaturan segera hadir'),
+                  ),
                 );
               },
             ),
@@ -109,7 +107,9 @@ class ProfileScreen extends StatelessWidget {
 
                       Navigator.pushAndRemoveUntil(
                         context,
-                        MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const WelcomeScreen(),
+                        ),
                         (route) => false,
                       );
                     },
@@ -123,11 +123,16 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     )
                   : const Icon(Icons.logout),
-              label: Text(authProvider.isLoading ? 'Memproses...' : 'Keluar (Log Out)'),
+              label: Text(
+                authProvider.isLoading ? 'Memproses...' : 'Keluar (Log Out)',
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red.shade900,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

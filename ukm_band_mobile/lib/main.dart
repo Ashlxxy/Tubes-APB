@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/music_provider.dart';
 import 'screens/main_shell.dart';
 import 'screens/welcome_screen.dart';
 import 'services/api_service.dart';
 import 'providers/audio_provider.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(
@@ -19,6 +21,9 @@ void main() {
           },
         ),
         ChangeNotifierProvider<AudioProvider>(create: (_) => AudioProvider()),
+        ChangeNotifierProvider<MusicProvider>(
+          create: (context) => MusicProvider(context.read<ApiService>()),
+        ),
       ],
       child: const UKMBandApp(),
     ),
@@ -33,20 +38,7 @@ class UKMBandApp extends StatelessWidget {
     return MaterialApp(
       title: 'UKM Band Telkom',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: const Color(0xFFE50914), // Telkom Red Accent
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFE50914),
-          secondary: Color(0xFFE50914),
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF282828),
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.grey,
-        ),
-      ),
+      theme: AppTheme.dark(),
       home: const AuthGate(),
     );
   }

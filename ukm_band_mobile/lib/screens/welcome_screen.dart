@@ -38,10 +38,7 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Temukan ritmemu dan bergabunglah bersama kami',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey.shade400,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey.shade400),
               ),
               Spacer(),
               // Tombol Login
@@ -49,7 +46,9 @@ class WelcomeScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -72,7 +71,9 @@ class WelcomeScreen extends StatelessWidget {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const RegisterScreen(),
+                    ),
                   );
                 },
                 style: OutlinedButton.styleFrom(

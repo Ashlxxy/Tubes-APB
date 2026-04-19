@@ -8,8 +8,10 @@ class AudioProvider with ChangeNotifier {
   List<Song> _queue = [];
   int _currentIndex = -1;
   bool _isPlaying = false;
+  bool _isLoading = false;
   Duration _duration = Duration.zero;
   Duration _position = Duration.zero;
+  String? _playbackError;
 
   AudioProvider() {
     _audioPlayer.onPlayerStateChanged.listen((state) {
@@ -41,10 +43,14 @@ class AudioProvider with ChangeNotifier {
   Song? get currentSong => _currentSong;
   List<Song> get queue => _queue;
   bool get isPlaying => _isPlaying;
+  bool get isLoading => _isLoading;
   Duration get duration => _duration;
   Duration get position => _position;
-  bool get canPlayNext => _currentIndex >= 0 && _currentIndex < _queue.length - 1;
-  bool get canPlayPrevious => _currentIndex > 0 && _currentIndex < _queue.length;
+  String? get playbackError => _playbackError;
+  bool get canPlayNext =>
+      _currentIndex >= 0 && _currentIndex < _queue.length - 1;
+  bool get canPlayPrevious =>
+      _currentIndex > 0 && _currentIndex < _queue.length;
 
   Future<void> playSong(Song song, {List<Song>? queue}) async {
     if (queue != null && queue.isNotEmpty) {
@@ -74,20 +80,34 @@ class AudioProvider with ChangeNotifier {
     _duration = Duration.zero;
     notifyListeners();
 
-    var sourcePath = song.playbackUrl;
+    _isLoading = true;
+    _playbackError = null;
+    notifyListeners();
 
-    try {
-      if (sourcePath.startsWith('http://') || sourcePath.startsWith('https://')) {
-        await _audioPlayer.play(UrlSource(sourcePath));
-      } else {
-        if (sourcePath.startsWith('assets/')) {
-          sourcePath = sourcePath.substring(7);
-        }
-        await _audioPlayer.play(AssetSource(sourcePath));
+    final candidates = song.playbackCandidates.isNotEmpty
+        ? song.playbackCandidates
+        : [song.playbackUrl];
+
+    Object? lastError;
+    for (final candidate in candidates) {
+      try {
+        await _audioPlayer.play(_sourceFor(candidate));
+        _isLoading = false;
+        _playbackError = null;
+        notifyListeners();
+        return;
+      } catch (error) {
+        lastError = error;
+        debugPrint('Error playing audio source "$candidate": $error');
       }
-    } catch (e) {
-      debugPrint('Error playing audio: $e');
     }
+
+    _isLoading = false;
+    _isPlaying = false;
+    _playbackError =
+        'Audio tidak dapat diputar. Pastikan file audio lokal valid.';
+    notifyListeners();
+    debugPrint('All audio sources failed for ${song.title}: $lastError');
   }
 
   Future<void> playNext() async {
@@ -120,6 +140,28 @@ class AudioProvider with ChangeNotifier {
 
   Future<void> seek(Duration pos) async {
     await _audioPlayer.seek(pos);
+  }
+
+  Source _sourceFor(String rawPath) {
+    var sourcePath = rawPath.trim();
+
+    if (sourcePath.startsWith('http://') || sourcePath.startsWith('https://')) {
+      return UrlSource(sourcePath);
+    }
+
+    if (sourcePath.startsWith('/')) {
+      sourcePath = sourcePath.substring(1);
+    }
+
+    if (sourcePath.startsWith('public/')) {
+      sourcePath = sourcePath.substring(7);
+    }
+
+    if (sourcePath.startsWith('assets/')) {
+      sourcePath = sourcePath.substring(7);
+    }
+
+    return AssetSource(sourcePath);
   }
 
   @override

@@ -26,4 +26,13 @@ class Playlist {
       songs: songs,
     );
   }
+
+  Playlist copyWith({int? id, int? userId, String? name, List<Song>? songs}) {
+    return Playlist(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      songs: songs ?? this.songs,
+    );
+  }
 }

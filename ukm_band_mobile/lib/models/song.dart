@@ -52,21 +52,35 @@ class Song {
   }
 
   String get playbackUrl {
-    if (streamUrl != null && streamUrl!.isNotEmpty) {
-      return streamUrl!;
+    if (filePath.startsWith('assets/')) {
+      return filePath;
     }
     if (audioUrl != null && audioUrl!.isNotEmpty) {
       return audioUrl!;
     }
+    if (filePath.isNotEmpty) {
+      return filePath;
+    }
+    if (streamUrl != null && streamUrl!.isNotEmpty) {
+      return streamUrl!;
+    }
     return filePath;
+  }
+
+  List<String> get playbackCandidates {
+    final candidates = <String>[
+      if (filePath.startsWith('assets/')) filePath,
+      if (audioUrl != null && audioUrl!.isNotEmpty) audioUrl!,
+      if (filePath.isNotEmpty && !filePath.startsWith('assets/')) filePath,
+      if (streamUrl != null && streamUrl!.isNotEmpty) streamUrl!,
+    ];
+
+    return candidates.toSet().toList();
   }
 
   bool get isRemoteCover => displayCover.startsWith('http');
 
-  Song copyWith({
-    int? likes,
-    bool? isLiked,
-  }) {
+  Song copyWith({int? plays, int? likes, bool? isLiked}) {
     return Song(
       id: id,
       title: title,
@@ -77,7 +91,7 @@ class Song {
       coverUrl: coverUrl,
       audioUrl: audioUrl,
       streamUrl: streamUrl,
-      plays: plays,
+      plays: plays ?? this.plays,
       likes: likes ?? this.likes,
       isLiked: isLiked ?? this.isLiked,
     );
