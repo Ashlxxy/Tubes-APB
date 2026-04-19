@@ -62,27 +62,24 @@ A modern and dynamic web-based music player. Built with Laravel 11, it offers an
 
 4.  **Environment Setup**:
     *   Copy the example environment file:
-        ```bash
-        cp .env.example .env
-        ```
-    *   Generate an application key:
-        ```bash
-        php artisan key:generate
-        ```
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
 
 5.  **Database Setup**:
     *   Create a new database for the project (e.g., `ukm_band`).
     *   Update your `.env` file with your database credentials (DB_DATABASE, DB_USERNAME, DB_PASSWORD).
     *   Import the provided SQL dump to get the complete demo data:
-        ```bash
-        mysql -u [your_username] -p [your_database_name] < ../../Database-TubesKel2.sql
-        ```
+    ```bash
+    mysql -u [your_username] -p [your_database_name] < ../../Database-TubesKel2.sql
+    ```
     *   Alternatively, you can run migrations and seeders (this may provide different data than the SQL dump):
-        ```bash
-        php artisan migrate --seed
-        ```
+    ```bash
+    php artisan migrate --seed
+    ```
     
-6. **Storage Link**:
+6.  **Storage Link**:
     ```bash
     php artisan storage:link
     ```
@@ -93,6 +90,9 @@ A modern and dynamic web-based music player. Built with Laravel 11, it offers an
     php artisan serve
     ```
     The application will be available at `http://127.0.0.1:8000`.
+
+> **Note:** If you experience large file upload errors, run the server with:
+> `php -d upload_max_filesize=100M -d post_max_size=100M -S 127.0.0.1:8000 -t public`
 
 ### Demo Accounts
 
