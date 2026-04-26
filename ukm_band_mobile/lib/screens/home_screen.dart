@@ -79,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final songs = music.songs;
         final popularSongs = music.popularSongs.take(8).toList();
         final latestSongs = songs.take(10).toList();
+        final likedCount = songs.where((song) => song.isLiked).length;
 
         return Scaffold(
           body: Container(
@@ -110,6 +111,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             queue: songs,
                             onPlay: _playSong,
                             onOpen: _openSong,
+                          ),
+                          const SizedBox(height: 26),
+                          _HomeStatsStrip(
+                            songCount: songs.length,
+                            playlistCount: music.playlists.length,
+                            likedCount: likedCount,
                           ),
                           const SizedBox(height: 26),
                           if (music.isLoading && !music.hasLoaded)
@@ -229,7 +236,7 @@ class _HomeHeader extends StatelessWidget {
           icon: ClipRRect(
             borderRadius: BorderRadius.circular(18),
             child: Image.asset(
-              'assets/img/default-cover.jpg',
+              'assets/img/logo.png',
               width: 36,
               height: 36,
               fit: BoxFit.cover,
@@ -260,7 +267,7 @@ class _HeroPanel extends StatelessWidget {
     final featured = song;
 
     return AppGlassCard(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.zero,
       onTap: featured == null ? null : () => onOpen(featured, queue),
       child: featured == null
           ? const SizedBox(
@@ -272,65 +279,323 @@ class _HeroPanel extends StatelessWidget {
                 ),
               ),
             )
-          : Row(
-              children: [
-                SongArtwork(
-                  source: featured.displayCover,
-                  size: 112,
-                  borderRadius: BorderRadius.circular(22),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.accent.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: const Text(
-                          'Terbaru',
-                          style: TextStyle(
-                            color: AppColors.accentHot,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 11,
-                          ),
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: const Alignment(0.82, -0.7),
+                          radius: 1.25,
+                          colors: [
+                            AppColors.accentHot.withValues(alpha: 0.34),
+                            AppColors.card.withValues(alpha: 0.96),
+                            AppColors.ink,
+                          ],
+                          stops: const [0, 0.52, 1],
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        featured.title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        featured.artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: AppColors.muted),
-                      ),
-                      const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: () => onPlay(featured, queue),
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: const Text('Putar'),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    right: -36,
+                    top: -44,
+                    child: Icon(
+                      Icons.album_rounded,
+                      color: Colors.white.withValues(alpha: 0.045),
+                      size: 190,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.accent.withValues(
+                                            alpha: 0.22,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.accentHot
+                                                .withValues(alpha: 0.26),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'Now Featured',
+                                          style: TextStyle(
+                                            color: AppColors.accentHot,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const _SignalBars(),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Text(
+                                    featured.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 26,
+                                      height: 1.02,
+                                      letterSpacing: -0.6,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    featured.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: AppColors.muted,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Hero(
+                              tag: 'hero-song-${featured.id}',
+                              child: SongArtwork(
+                                source: featured.displayCover,
+                                size: 106,
+                                borderRadius: BorderRadius.circular(28),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _InfoChip(
+                              icon: Icons.play_arrow_rounded,
+                              label: '${featured.plays} plays',
+                            ),
+                            _InfoChip(
+                              icon: Icons.favorite_rounded,
+                              label: '${featured.likes} likes',
+                            ),
+                            const _InfoChip(
+                              icon: Icons.bolt_rounded,
+                              label: 'Fresh drop',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 18),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () => onPlay(featured, queue),
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: const Text('Putar Sekarang'),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            IconButton.filledTonal(
+                              tooltip: 'Buka detail',
+                              onPressed: () => onOpen(featured, queue),
+                              icon: const Icon(Icons.arrow_forward_rounded),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
+    );
+  }
+}
+
+class _HomeStatsStrip extends StatelessWidget {
+  final int songCount;
+  final int playlistCount;
+  final int likedCount;
+
+  const _HomeStatsStrip({
+    required this.songCount,
+    required this.playlistCount,
+    required this.likedCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatTile(
+            value: '$songCount',
+            label: 'Tracks',
+            icon: Icons.library_music_rounded,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatTile(
+            value: '$playlistCount',
+            label: 'Playlist',
+            icon: Icons.queue_music_rounded,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _StatTile(
+            value: '$likedCount',
+            label: 'Liked',
+            icon: Icons.favorite_rounded,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatTile extends StatelessWidget {
+  final String value;
+  final String label;
+  final IconData icon;
+
+  const _StatTile({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.accentHot, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.cream,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.accentHot, size: 15),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.cream,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SignalBars extends StatelessWidget {
+  const _SignalBars();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        _SignalBar(height: 10),
+        _SignalBar(height: 17),
+        _SignalBar(height: 12),
+        _SignalBar(height: 22),
+      ],
+    );
+  }
+}
+
+class _SignalBar extends StatelessWidget {
+  final double height;
+
+  const _SignalBar({required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.45, end: 1),
+      duration: Duration(milliseconds: 420 + height.round() * 10),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Container(
+          width: 4,
+          height: height * value,
+          margin: const EdgeInsets.only(right: 3),
+          decoration: BoxDecoration(
+            color: AppColors.accentHot,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        );
+      },
     );
   }
 }
@@ -369,7 +634,7 @@ class _PlaylistStrip extends StatelessWidget {
             final playlist = playlists[index];
             final cover = playlist.songs.isNotEmpty
                 ? playlist.songs.first.displayCover
-                : 'assets/img/default-cover.jpg';
+                : '';
 
             return AppGlassCard(
               padding: EdgeInsets.zero,

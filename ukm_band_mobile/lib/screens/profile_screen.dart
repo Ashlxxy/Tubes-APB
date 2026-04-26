@@ -39,7 +39,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 child: ClipOval(
                   child: Image.asset(
-                    'assets/img/default-cover.jpg',
+                    'assets/img/logo.png',
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(

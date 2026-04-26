@@ -16,6 +16,7 @@ class SongArtwork extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedSource = source.endsWith('default-cover.jpg') ? '' : source;
     final fallback = Container(
       width: size,
       height: size,
@@ -28,17 +29,18 @@ class SongArtwork extends StatelessWidget {
     );
 
     Widget image;
-    if (source.startsWith('http://') || source.startsWith('https://')) {
+    if (normalizedSource.startsWith('http://') ||
+        normalizedSource.startsWith('https://')) {
       image = Image.network(
-        source,
+        normalizedSource,
         width: size,
         height: size,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => fallback,
       );
-    } else if (source.isNotEmpty) {
+    } else if (normalizedSource.isNotEmpty) {
       image = Image.asset(
-        source,
+        normalizedSource,
         width: size,
         height: size,
         fit: BoxFit.cover,
@@ -52,7 +54,7 @@ class SongArtwork extends StatelessWidget {
   }
 }
 
-class AppGlassCard extends StatelessWidget {
+class AppGlassCard extends StatefulWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
@@ -65,11 +67,25 @@ class AppGlassCard extends StatelessWidget {
   });
 
   @override
+  State<AppGlassCard> createState() => _AppGlassCardState();
+}
+
+class _AppGlassCardState extends State<AppGlassCard> {
+  bool _isPressed = false;
+
+  void _setPressed(bool value) {
+    if (widget.onTap == null || _isPressed == value) {
+      return;
+    }
+    setState(() => _isPressed = value);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final content = AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      padding: padding,
+      padding: widget.padding,
       decoration: BoxDecoration(
         color: AppColors.card.withValues(alpha: 0.86),
         borderRadius: BorderRadius.circular(24),
@@ -82,17 +98,27 @@ class AppGlassCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      child: widget.child,
     );
 
-    if (onTap == null) {
+    if (widget.onTap == null) {
       return content;
     }
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: content,
+    return GestureDetector(
+      onTapDown: (_) => _setPressed(true),
+      onTapCancel: () => _setPressed(false),
+      onTapUp: (_) => _setPressed(false),
+      child: AnimatedScale(
+        scale: _isPressed ? 0.98 : 1,
+        duration: const Duration(milliseconds: 130),
+        curve: Curves.easeOutCubic,
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: content,
+        ),
+      ),
     );
   }
 }

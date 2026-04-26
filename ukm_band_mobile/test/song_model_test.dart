@@ -14,7 +14,7 @@ void main() {
       title: 'Lust',
       artist: 'UKM Band',
       description: 'Demo',
-      coverPath: 'assets/img/default-cover.jpg',
+      coverPath: 'assets/img/logo.png',
       filePath: 'assets/songs/Lust.wav',
       audioUrl: 'http://10.0.2.2:8000/assets/songs/Lust.wav',
       streamUrl: 'http://10.0.2.2:8000/api/songs/1/stream',
