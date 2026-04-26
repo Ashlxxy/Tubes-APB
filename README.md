@@ -1,46 +1,41 @@
-# UKM Band - Web & Mobile Music Platform
+# UKM Band - Backend API & Mobile Music Platform
 [![Ask DeepWiki](https://devin.ai/assets/askdeepwiki.png)](https://deepwiki.com/Ashlxxy/Tubes-APB.git)
 
-This repository contains the source code for a comprehensive music streaming platform developed for the Telkom University Student Activity Unit (UKM) Band. The platform consists of two main components: a feature-rich web application built with Laravel and a companion mobile application built with Flutter.
+This repository contains the source code for a music streaming platform developed for the Telkom University Student Activity Unit (UKM) Band. The project is now organized around a Laravel backend/API and a Flutter mobile application.
 
 ## Project Structure
 
 The repository is organized into the following main directories:
 
--   `SourceCode-TubesKel2/tubes-laravel/`: Contains the source code for the Laravel web application.
+-   `backend/`: Contains the Laravel backend/API, database migrations, seeders, and demo media assets.
 -   `ukm_band_mobile/`: Contains the source code for the Flutter mobile application.
--   `Database-TubesKel2.sql`: An SQL dump file to set up the database with sample data for the web application.
+-   `backend/database/dumps/Database-TubesKel2.sql`: SQL dump file for setting up demo data.
 
 ---
 
-## 1. Web Application (Laravel)
+## 1. Backend API (Laravel)
 
-A modern and dynamic web-based music player. Built with Laravel 11, it offers an interactive listening experience with features for users and a complete dashboard for administrators.
+A Laravel backend that powers authentication, songs, streaming, playlists, likes, comments, and listening history for the mobile app.
 
 ### Features
 
 #### User Features
 *   **Authentication**: Secure login and registration system.
-*   **Music Discovery**: Browse latest and popular songs on the home page.
-*   **Modern Audio Player**: Stream audio with seeking, play/pause, next/previous controls.
+*   **Music Discovery**: Fetch latest and popular songs through the API.
+*   **Audio Streaming**: Stream uploaded audio files through protected API routes.
 *   **Playlist Management**: Create, manage, and add songs to personal playlists.
 *   **Social Interaction**: "Like" favorite songs and post nested comments on song pages.
 *   **Listening History**: Easily access recently played songs.
-*   **Feedback System**: Send feedback directly to the administrators.
-
-#### Admin Features
-*   **Dashboard**: View application statistics and manage all content.
-*   **Song Management (CRUD)**: Upload audio files and cover art, edit song metadata (title, artist, description), and delete songs.
-*   **Feedback Center**: View and manage user-submitted feedback.
+*   **Mobile API Support**: Provides the endpoints used by the Flutter app.
 
 ### Tech Stack
 
-*   **Backend**: Laravel 11 (PHP 8.2+)
-*   **Frontend**: Blade, Bootstrap 5, Vanilla JavaScript
+*   **Backend**: Laravel 12 (PHP 8.2+)
+*   **API Auth**: Laravel Sanctum
 *   **Database**: MySQL / MariaDB (production), SQLite (development)
 *   **Asset Bundling**: Vite
 
-### Web Application Setup
+### Backend Setup
 
 1.  **Prerequisites**:
     *   PHP >= 8.2
@@ -51,7 +46,7 @@ A modern and dynamic web-based music player. Built with Laravel 11, it offers an
 2.  **Clone the Repository**:
     ```bash
     git clone https://github.com/Ashlxxy/Tubes-APB.git
-    cd Tubes-APB/SourceCode-TubesKel2/tubes-laravel
+    cd Tubes-APB/backend
     ```
 
 3.  **Install Dependencies**:
@@ -72,7 +67,7 @@ A modern and dynamic web-based music player. Built with Laravel 11, it offers an
     *   Update your `.env` file with your database credentials (DB_DATABASE, DB_USERNAME, DB_PASSWORD).
     *   Import the provided SQL dump to get the complete demo data:
     ```bash
-    mysql -u [your_username] -p [your_database_name] < ../../Database-TubesKel2.sql
+    mysql -u [your_username] -p [your_database_name] < database/dumps/Database-TubesKel2.sql
     ```
     *   Alternatively, you can run migrations and seeders (this may provide different data than the SQL dump):
     ```bash
@@ -89,7 +84,7 @@ A modern and dynamic web-based music player. Built with Laravel 11, it offers an
     npm run build
     php artisan serve
     ```
-    The application will be available at `http://127.0.0.1:8000`.
+    The API will be available at `http://127.0.0.1:8000/api`.
 
 > **Note:** If you experience large file upload errors, run the server with:
 > `php -d upload_max_filesize=100M -d post_max_size=100M -S 127.0.0.1:8000 -t public`
