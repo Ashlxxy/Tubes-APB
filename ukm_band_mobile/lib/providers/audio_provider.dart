@@ -51,6 +51,34 @@ class AudioProvider with ChangeNotifier {
       _currentIndex >= 0 && _currentIndex < _queue.length - 1;
   bool get canPlayPrevious =>
       _currentIndex > 0 && _currentIndex < _queue.length;
+  bool isCurrentSong(Song song) => _currentSong?.id == song.id;
+  bool get hasCompletedCurrentSong =>
+      _currentSong != null &&
+      _duration > Duration.zero &&
+      _position >= _duration &&
+      !_isPlaying;
+  bool willStartNewPlayback(Song song) =>
+      !isCurrentSong(song) || _playbackError != null || hasCompletedCurrentSong;
+
+  Future<void> playOrToggleSong(Song song, {List<Song>? queue}) async {
+    if (isCurrentSong(song) && _playbackError == null) {
+      if (_isLoading) {
+        return;
+      }
+
+      if (_isPlaying) {
+        await pause();
+        return;
+      }
+
+      if (!hasCompletedCurrentSong) {
+        await resume();
+        return;
+      }
+    }
+
+    await playSong(song, queue: queue);
+  }
 
   Future<void> playSong(Song song, {List<Song>? queue}) async {
     if (queue != null && queue.isNotEmpty) {
@@ -132,10 +160,17 @@ class AudioProvider with ChangeNotifier {
 
   Future<void> pause() async {
     await _audioPlayer.pause();
+    _isPlaying = false;
+    notifyListeners();
   }
 
   Future<void> resume() async {
+    if (_currentSong == null) {
+      return;
+    }
     await _audioPlayer.resume();
+    _isPlaying = true;
+    notifyListeners();
   }
 
   Future<void> seek(Duration pos) async {

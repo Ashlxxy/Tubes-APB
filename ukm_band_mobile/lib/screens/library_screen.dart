@@ -31,17 +31,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final apiService = context.read<ApiService>();
     final audioProvider = context.read<AudioProvider>();
 
-    try {
-      await apiService.recordPlay(song.id);
-    } catch (_) {
-      // History tracking should not block playback.
+    if (audioProvider.willStartNewPlayback(song)) {
+      try {
+        await apiService.recordPlay(song.id);
+      } catch (_) {
+        // History tracking should not block playback.
+      }
     }
 
     if (!mounted) {
       return;
     }
 
-    await audioProvider.playSong(song, queue: queue);
+    await audioProvider.playOrToggleSong(song, queue: queue);
   }
 
   void _openSong(Song song, List<Song> queue) {

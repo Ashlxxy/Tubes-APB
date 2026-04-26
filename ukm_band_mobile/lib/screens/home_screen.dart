@@ -38,17 +38,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final apiService = context.read<ApiService>();
     final audioProvider = context.read<AudioProvider>();
 
-    try {
-      await apiService.recordPlay(song.id);
-    } catch (_) {
-      // Keep playback running even if tracking API fails.
+    if (audioProvider.willStartNewPlayback(song)) {
+      try {
+        await apiService.recordPlay(song.id);
+      } catch (_) {
+        // Keep playback running even if tracking API fails.
+      }
     }
 
     if (!mounted) {
       return;
     }
 
-    await audioProvider.playSong(song, queue: queue);
+    await audioProvider.playOrToggleSong(song, queue: queue);
   }
 
   void _openSong(Song song, List<Song> queue) {

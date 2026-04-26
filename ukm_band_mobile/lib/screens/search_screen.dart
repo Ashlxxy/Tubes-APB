@@ -88,17 +88,19 @@ class _SearchScreenState extends State<SearchScreen> {
     final apiService = context.read<ApiService>();
     final audioProvider = context.read<AudioProvider>();
 
-    try {
-      await apiService.recordPlay(song.id);
-    } catch (_) {
-      // Playback should continue even when tracking fails.
+    if (audioProvider.willStartNewPlayback(song)) {
+      try {
+        await apiService.recordPlay(song.id);
+      } catch (_) {
+        // Playback should continue even when tracking fails.
+      }
     }
 
     if (!mounted) {
       return;
     }
 
-    await audioProvider.playSong(song, queue: queue);
+    await audioProvider.playOrToggleSong(song, queue: queue);
   }
 
   void _openSong(Song song, List<Song> queue) {

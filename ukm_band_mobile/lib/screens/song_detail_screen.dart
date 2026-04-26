@@ -95,17 +95,19 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
     final api = context.read<ApiService>();
     final audio = context.read<AudioProvider>();
 
-    try {
-      await api.recordPlay(song.id);
-    } catch (_) {
-      // Playback must not depend on analytics/history tracking.
+    if (audio.willStartNewPlayback(song)) {
+      try {
+        await api.recordPlay(song.id);
+      } catch (_) {
+        // Playback must not depend on analytics/history tracking.
+      }
     }
 
     if (!mounted) {
       return;
     }
 
-    await audio.playSong(song, queue: queue.isEmpty ? [song] : queue);
+    await audio.playOrToggleSong(song, queue: queue.isEmpty ? [song] : queue);
   }
 
   Future<void> _toggleLike(Song song) async {
@@ -472,7 +474,9 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                         ),
                         const SizedBox(height: 16),
                         _DetailActionDock(
+                          isCurrent: isCurrent,
                           isPlaying: isCurrent && audio.isPlaying,
+                          isLoading: isCurrent && audio.isLoading,
                           isLiked: song.isLiked,
                           onPlay: () => _play(song, queue),
                           onLike: () => _toggleLike(song),
@@ -837,14 +841,18 @@ class _LiveBadge extends StatelessWidget {
 }
 
 class _DetailActionDock extends StatelessWidget {
+  final bool isCurrent;
   final bool isPlaying;
+  final bool isLoading;
   final bool isLiked;
   final VoidCallback onPlay;
   final VoidCallback onLike;
   final VoidCallback onPlaylist;
 
   const _DetailActionDock({
+    required this.isCurrent,
     required this.isPlaying,
+    required this.isLoading,
     required this.isLiked,
     required this.onPlay,
     required this.onLike,
@@ -853,17 +861,31 @@ class _DetailActionDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final playLabel = isLoading
+        ? 'Memuat...'
+        : isCurrent
+        ? (isPlaying ? 'Jeda Lagu' : 'Lanjutkan')
+        : 'Putar Sekarang';
+
     return AppGlassCard(
       child: Column(
         children: [
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: onPlay,
-              icon: Icon(
-                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              ),
-              label: Text(isPlaying ? 'Sedang Diputar' : 'Putar Sekarang'),
+              onPressed: isLoading ? null : onPlay,
+              icon: isLoading
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      isCurrent && isPlaying
+                          ? Icons.pause_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+              label: Text(playLabel),
             ),
           ),
           const SizedBox(height: 12),
