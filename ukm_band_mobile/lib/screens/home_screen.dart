@@ -52,11 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openSong(Song song, List<Song> queue) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SongDetailScreen(song: song, queue: queue),
-      ),
-    );
+    Navigator.of(context).push(songDetailRoute(song: song, queue: queue));
   }
 
   Future<void> _toggleLike(Song song) async {

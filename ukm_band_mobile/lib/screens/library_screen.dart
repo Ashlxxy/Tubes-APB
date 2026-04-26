@@ -45,11 +45,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   void _openSong(Song song, List<Song> queue) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => SongDetailScreen(song: song, queue: queue),
-      ),
-    );
+    Navigator.of(context).push(songDetailRoute(song: song, queue: queue));
   }
 
   Future<void> _showCreatePlaylistSheet() async {
@@ -169,162 +165,193 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     return Consumer<MusicProvider>(
       builder: (context, music, _) {
+        final playlistSongCount = music.playlists.fold<int>(
+          0,
+          (total, playlist) => total + playlist.songs.length,
+        );
+        final historySongs = music.history
+            .where((entry) => entry.song != null)
+            .map((entry) => entry.song!)
+            .toList();
+
         return Scaffold(
           backgroundColor: AppColors.ink,
-          body: SafeArea(
-            child: RefreshIndicator(
-              onRefresh: () => context.read<MusicProvider>().refresh(),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 118),
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF07131B), AppColors.ink, Color(0xFF2C080D)],
+                begin: Alignment.topRight,
+                end: Alignment.bottomLeft,
+                stops: [0, 0.56, 1],
+              ),
+            ),
+            child: SafeArea(
+              child: RefreshIndicator(
+                onRefresh: () => context.read<MusicProvider>().refresh(),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  padding: const EdgeInsets.fromLTRB(18, 18, 18, 118),
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Pustaka',
+                                style: Theme.of(context).textTheme.headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w900),
+                              ),
+                              const SizedBox(height: 5),
+                              const Text(
+                                'Playlist, riwayat, dan lagu yang sering kamu putar.',
+                                style: TextStyle(color: AppColors.muted),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton.filled(
+                          tooltip: 'Buat playlist',
+                          onPressed: _showCreatePlaylistSheet,
+                          icon: const Icon(Icons.add_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _LibraryHero(
+                      playlistCount: music.playlists.length,
+                      playlistSongCount: playlistSongCount,
+                      historyCount: historySongs.length,
+                      onCreate: _showCreatePlaylistSheet,
+                    ),
+                    const SizedBox(height: 22),
+                    if (music.isLoading && !music.hasLoaded)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 42),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (music.errorMessage != null &&
+                        music.playlists.isEmpty &&
+                        music.history.isEmpty)
+                      AppGlassCard(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Perpustakaan Anda',
-                              style: Theme.of(context).textTheme.headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.w900),
+                            const Icon(
+                              Icons.wifi_off_rounded,
+                              color: AppColors.accentHot,
                             ),
-                            const SizedBox(height: 5),
-                            const Text(
-                              'Playlist, riwayat, dan lagu yang sering kamu putar.',
-                              style: TextStyle(color: AppColors.muted),
+                            const SizedBox(height: 12),
+                            Text(
+                              music.errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: AppColors.muted),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  context.read<MusicProvider>().refresh(),
+                              icon: const Icon(Icons.refresh_rounded),
+                              label: const Text('Coba Lagi'),
                             ),
                           ],
                         ),
-                      ),
-                      IconButton.filled(
-                        tooltip: 'Buat playlist',
-                        onPressed: _showCreatePlaylistSheet,
-                        icon: const Icon(Icons.add_rounded),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  if (music.isLoading && !music.hasLoaded)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 42),
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  else if (music.errorMessage != null &&
-                      music.playlists.isEmpty &&
-                      music.history.isEmpty)
-                    AppGlassCard(
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.wifi_off_rounded,
-                            color: AppColors.accentHot,
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            music.errorMessage!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.muted),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: () =>
-                                context.read<MusicProvider>().refresh(),
-                            icon: const Icon(Icons.refresh_rounded),
-                            label: const Text('Coba Lagi'),
-                          ),
-                        ],
-                      ),
-                    )
-                  else ...[
-                    _LibrarySectionTitle(
-                      title: 'Playlist Saya',
-                      actionLabel: 'Buat',
-                      onAction: _showCreatePlaylistSheet,
-                    ),
-                    const SizedBox(height: 12),
-                    if (music.playlists.isEmpty)
-                      _EmptyLibraryCard(onCreate: _showCreatePlaylistSheet)
-                    else
-                      ...music.playlists.map(
-                        (playlist) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _PlaylistCard(
-                            playlist: playlist,
-                            onPlay: playlist.songs.isEmpty
-                                ? null
-                                : () => _playSong(
-                                    playlist.songs.first,
-                                    playlist.songs,
-                                  ),
-                            onRename: () => _renamePlaylist(playlist),
-                            onDelete: () => _deletePlaylist(playlist),
-                            onOpenSong: (song) =>
-                                _openSong(song, playlist.songs),
-                            onPlaySong: (song) =>
-                                _playSong(song, playlist.songs),
-                            onRemoveSong: (song) async {
-                              final musicProvider = context
-                                  .read<MusicProvider>();
-                              final messenger = ScaffoldMessenger.of(context);
-                              try {
-                                await musicProvider.removeSongFromPlaylist(
-                                  playlist,
-                                  song,
-                                );
-                              } catch (error) {
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Gagal menghapus lagu: $error',
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 24),
-                    const _LibrarySectionTitle(title: 'Baru Diputar'),
-                    const SizedBox(height: 12),
-                    if (music.history.isEmpty)
-                      const AppGlassCard(
-                        child: Text(
-                          'Riwayat pemutaran masih kosong.',
-                          style: TextStyle(color: AppColors.muted),
-                        ),
                       )
-                    else
-                      ...music.history
-                          .where((entry) => entry.song != null)
-                          .take(20)
-                          .map(
-                            (entry) => Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _HistoryTile(
-                                entry: entry,
-                                onOpen: () => _openSong(
-                                  entry.song!,
-                                  music.history
-                                      .where((item) => item.song != null)
-                                      .map((item) => item.song!)
-                                      .toList(),
-                                ),
-                                onPlay: () => _playSong(
-                                  entry.song!,
-                                  music.history
-                                      .where((item) => item.song != null)
-                                      .map((item) => item.song!)
-                                      .toList(),
-                                ),
+                    else ...[
+                      _LibrarySectionTitle(
+                        title: 'Playlist Saya',
+                        actionLabel: 'Buat',
+                        onAction: _showCreatePlaylistSheet,
+                      ),
+                      const SizedBox(height: 12),
+                      if (music.playlists.isEmpty)
+                        _EmptyLibraryCard(onCreate: _showCreatePlaylistSheet)
+                      else
+                        ...music.playlists.asMap().entries.map(
+                          (entry) => _LibraryReveal(
+                            index: entry.key,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _PlaylistCard(
+                                playlist: entry.value,
+                                onPlay: entry.value.songs.isEmpty
+                                    ? null
+                                    : () => _playSong(
+                                        entry.value.songs.first,
+                                        entry.value.songs,
+                                      ),
+                                onRename: () => _renamePlaylist(entry.value),
+                                onDelete: () => _deletePlaylist(entry.value),
+                                onOpenSong: (song) =>
+                                    _openSong(song, entry.value.songs),
+                                onPlaySong: (song) =>
+                                    _playSong(song, entry.value.songs),
+                                onRemoveSong: (song) async {
+                                  final musicProvider = context
+                                      .read<MusicProvider>();
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  try {
+                                    await musicProvider.removeSongFromPlaylist(
+                                      entry.value,
+                                      song,
+                                    );
+                                  } catch (error) {
+                                    messenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Gagal menghapus lagu: $error',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
                               ),
                             ),
                           ),
+                        ),
+                      const SizedBox(height: 24),
+                      const _LibrarySectionTitle(title: 'Baru Diputar'),
+                      const SizedBox(height: 12),
+                      if (music.history.isEmpty)
+                        const AppGlassCard(
+                          child: Text(
+                            'Riwayat pemutaran masih kosong.',
+                            style: TextStyle(color: AppColors.muted),
+                          ),
+                        )
+                      else
+                        ...music.history
+                            .where((entry) => entry.song != null)
+                            .take(20)
+                            .toList()
+                            .asMap()
+                            .entries
+                            .map(
+                              (entry) => _LibraryReveal(
+                                index: entry.key,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _HistoryTile(
+                                    entry: entry.value,
+                                    onOpen: () => _openSong(
+                                      entry.value.song!,
+                                      historySongs,
+                                    ),
+                                    onPlay: () => _playSong(
+                                      entry.value.song!,
+                                      historySongs,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -452,6 +479,194 @@ class _CreatePlaylistSheetState extends State<_CreatePlaylistSheet> {
   }
 }
 
+class _LibraryHero extends StatelessWidget {
+  final int playlistCount;
+  final int playlistSongCount;
+  final int historyCount;
+  final VoidCallback onCreate;
+
+  const _LibraryHero({
+    required this.playlistCount,
+    required this.playlistSongCount,
+    required this.historyCount,
+    required this.onCreate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      padding: EdgeInsets.zero,
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              const Color(0xFF061A22).withValues(alpha: 0.9),
+              AppColors.card.withValues(alpha: 0.7),
+              AppColors.accent.withValues(alpha: 0.12),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(22),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: const Icon(
+                    Icons.library_music_rounded,
+                    color: AppColors.accentHot,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Ruang Koleksi',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Atur setlist pribadi dan buka lagu dengan satu tap.',
+                        style: TextStyle(color: AppColors.muted, height: 1.35),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: _LibraryStat(
+                    value: '$playlistCount',
+                    label: 'Playlist',
+                    icon: Icons.queue_music_rounded,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _LibraryStat(
+                    value: '$playlistSongCount',
+                    label: 'Tersimpan',
+                    icon: Icons.bookmark_rounded,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _LibraryStat(
+                    value: '$historyCount',
+                    label: 'Riwayat',
+                    icon: Icons.history_rounded,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onCreate,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Buat Playlist Baru'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryStat extends StatelessWidget {
+  final String value;
+  final String label;
+  final IconData icon;
+
+  const _LibraryStat({
+    required this.value,
+    required this.label,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.ink.withValues(alpha: 0.34),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.accentHot, size: 18),
+          const SizedBox(height: 9),
+          Text(
+            value,
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LibraryReveal extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _LibraryReveal({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final clampedIndex = index.clamp(0, 8).toInt();
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 250 + (clampedIndex * 32)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 12),
+            child: child,
+          ),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
 class _PlaylistCard extends StatelessWidget {
   final Playlist playlist;
   final VoidCallback? onPlay;
@@ -479,18 +694,7 @@ class _PlaylistCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(
-                  Icons.queue_music_rounded,
-                  color: AppColors.accentHot,
-                ),
-              ),
+              _PlaylistCover(songs: playlist.songs),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -505,25 +709,39 @@ class _PlaylistCard extends StatelessWidget {
                         fontSize: 17,
                       ),
                     ),
-                    Text(
-                      '${playlist.songs.length} lagu',
-                      style: const TextStyle(color: AppColors.muted),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _MiniLibraryPill(
+                          icon: Icons.library_music_rounded,
+                          label: '${playlist.songs.length} lagu',
+                        ),
+                        if (playlist.songs.isNotEmpty)
+                          const _MiniLibraryPill(
+                            icon: Icons.touch_app_rounded,
+                            label: 'Tap lagu',
+                          ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              IconButton(
-                tooltip: 'Ubah nama',
-                onPressed: onRename,
-                icon: const Icon(Icons.edit_outlined),
-              ),
-              IconButton(
-                tooltip: 'Hapus playlist',
-                onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.accentHot,
-                ),
+              PopupMenuButton<String>(
+                tooltip: 'Kelola playlist',
+                icon: const Icon(Icons.more_vert_rounded),
+                onSelected: (value) {
+                  if (value == 'rename') {
+                    onRename();
+                  } else if (value == 'delete') {
+                    onDelete();
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'rename', child: Text('Ubah nama')),
+                  PopupMenuItem(value: 'delete', child: Text('Hapus')),
+                ],
               ),
             ],
           ),
@@ -552,14 +770,17 @@ class _PlaylistCard extends StatelessWidget {
               ),
             )
           else
-            ...playlist.songs.map(
-              (song) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+            ...playlist.songs.asMap().entries.map(
+              (entry) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: entry.key == playlist.songs.length - 1 ? 0 : 8,
+                ),
                 child: _PlaylistSongTile(
-                  song: song,
-                  onOpen: () => onOpenSong(song),
-                  onPlay: () => onPlaySong(song),
-                  onRemove: () => onRemoveSong(song),
+                  song: entry.value,
+                  position: entry.key + 1,
+                  onOpen: () => onOpenSong(entry.value),
+                  onPlay: () => onPlaySong(entry.value),
+                  onRemove: () => onRemoveSong(entry.value),
                 ),
               ),
             ),
@@ -569,14 +790,122 @@ class _PlaylistCard extends StatelessWidget {
   }
 }
 
+class _PlaylistCover extends StatelessWidget {
+  final List<Song> songs;
+
+  const _PlaylistCover({required this.songs});
+
+  @override
+  Widget build(BuildContext context) {
+    if (songs.isEmpty) {
+      return Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          color: AppColors.accent.withValues(alpha: 0.16),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.line),
+        ),
+        child: const Icon(
+          Icons.queue_music_rounded,
+          color: AppColors.accentHot,
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: 68,
+      height: 68,
+      child: Stack(
+        children: [
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            child: SongArtwork(
+              source: songs.first.displayCover,
+              size: 58,
+              borderRadius: BorderRadius.circular(19),
+            ),
+          ),
+          Positioned(
+            right: 2,
+            bottom: 2,
+            child: Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                color: AppColors.accentHot,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.ink, width: 2),
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 17,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniLibraryPill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _MiniLibraryPill({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.cardSoft.withValues(alpha: 0.76),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppColors.muted),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PlaylistSongTile extends StatelessWidget {
   final Song song;
+  final int position;
   final VoidCallback onOpen;
   final VoidCallback onPlay;
   final VoidCallback onRemove;
 
   const _PlaylistSongTile({
     required this.song,
+    required this.position,
     required this.onOpen,
     required this.onPlay,
     required this.onRemove,
@@ -584,52 +913,80 @@ class _PlaylistSongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onOpen,
-      borderRadius: BorderRadius.circular(18),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            SongArtwork(
-              source: song.displayCover,
-              size: 50,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    song.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.ink.withValues(alpha: 0.24),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.line.withValues(alpha: 0.64)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 28,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.cardSoft.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Text(
+                  '$position',
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
                   ),
-                  Text(
-                    song.artist,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.muted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            IconButton(
-              tooltip: 'Putar lagu',
-              onPressed: onPlay,
-              icon: const Icon(Icons.play_arrow_rounded),
-            ),
-            IconButton(
-              tooltip: 'Hapus dari playlist',
-              onPressed: onRemove,
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
+              const SizedBox(width: 9),
+              SongArtwork(
+                source: song.displayCover,
+                size: 48,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      song.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      song.artist,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                tooltip: 'Putar lagu',
+                onPressed: onPlay,
+                icon: const Icon(Icons.play_arrow_rounded),
+              ),
+              IconButton(
+                tooltip: 'Hapus dari playlist',
+                onPressed: onRemove,
+                icon: const Icon(Icons.close_rounded, color: AppColors.muted),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -656,10 +1013,31 @@ class _HistoryTile extends StatelessWidget {
       onTap: onOpen,
       child: Row(
         children: [
-          SongArtwork(
-            source: song.displayCover,
-            size: 56,
-            borderRadius: BorderRadius.circular(16),
+          Stack(
+            children: [
+              SongArtwork(
+                source: song.displayCover,
+                size: 58,
+                borderRadius: BorderRadius.circular(17),
+              ),
+              Positioned(
+                right: 4,
+                bottom: 4,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: AppColors.ink.withValues(alpha: 0.86),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.history_rounded,
+                    color: AppColors.cream,
+                    size: 13,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -674,10 +1052,19 @@ class _HistoryTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  '${song.artist} | ${_formatPlayedAt(entry.playedAt)}',
+                  song.artist,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _formatPlayedAt(entry.playedAt),
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
             ),

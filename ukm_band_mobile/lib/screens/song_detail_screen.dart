@@ -11,6 +11,38 @@ import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/song_artwork.dart';
 
+Route<void> songDetailRoute({required Song song, List<Song> queue = const []}) {
+  return PageRouteBuilder<void>(
+    settings: RouteSettings(name: '/song/${song.id}'),
+    transitionDuration: const Duration(milliseconds: 380),
+    reverseTransitionDuration: const Duration(milliseconds: 240),
+    pageBuilder: (context, animation, secondaryAnimation) {
+      return SongDetailScreen(song: song, queue: queue);
+    },
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.08),
+            end: Offset.zero,
+          ).animate(curved),
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.98, end: 1).animate(curved),
+            child: child,
+          ),
+        ),
+      );
+    },
+  );
+}
+
 class SongDetailScreen extends StatefulWidget {
   final Song song;
   final List<Song> queue;
@@ -433,86 +465,41 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
-                        SongArtwork(
-                          source: song.displayCover,
-                          size: MediaQuery.of(context).size.width - 40,
-                          borderRadius: BorderRadius.circular(34),
+                        _SongDetailHero(
+                          song: song,
+                          isCurrent: isCurrent,
+                          isPlaying: audio.isPlaying,
                         ),
-                        const SizedBox(height: 24),
-                        Text(
-                          song.title,
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                height: 1.05,
-                              ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          song.artist,
-                          style: const TextStyle(
-                            color: AppColors.accentHot,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        Row(
-                          children: [
-                            _MetricChip(
-                              icon: Icons.play_arrow_rounded,
-                              label: '${song.plays} plays',
-                            ),
-                            const SizedBox(width: 10),
-                            _MetricChip(
-                              icon: song.isLiked
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              label: '${song.likes} likes',
-                              active: song.isLiked,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 22),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: FilledButton.icon(
-                                onPressed: () => _play(song, queue),
-                                icon: Icon(
-                                  isCurrent && audio.isPlaying
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                ),
-                                label: Text(
-                                  isCurrent && audio.isPlaying
-                                      ? 'Sedang Diputar'
-                                      : 'Putar Sekarang',
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            _RoundActionButton(
-                              label: song.isLiked ? 'Unlike' : 'Like',
-                              icon: song.isLiked
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              active: song.isLiked,
-                              onTap: () => _toggleLike(song),
-                            ),
-                            const SizedBox(width: 10),
-                            _RoundActionButton(
-                              label: 'Playlist',
-                              icon: Icons.playlist_add_rounded,
-                              onTap: () => _showPlaylistSheet(song),
-                            ),
-                          ],
+                        const SizedBox(height: 16),
+                        _DetailActionDock(
+                          isPlaying: isCurrent && audio.isPlaying,
+                          isLiked: song.isLiked,
+                          onPlay: () => _play(song, queue),
+                          onLike: () => _toggleLike(song),
+                          onPlaylist: () => _showPlaylistSheet(song),
                         ),
                         if (audio.playbackError != null && isCurrent) ...[
                           const SizedBox(height: 12),
-                          Text(
-                            audio.playbackError!,
-                            style: const TextStyle(color: AppColors.accentHot),
+                          AppGlassCard(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error_outline_rounded,
+                                  color: AppColors.accentHot,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    audio.playbackError!,
+                                    style: const TextStyle(
+                                      color: AppColors.accentHot,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                         const SizedBox(height: 26),
@@ -640,6 +627,331 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   }
 }
 
+class _SongDetailHero extends StatelessWidget {
+  final Song song;
+  final bool isCurrent;
+  final bool isPlaying;
+
+  const _SongDetailHero({
+    required this.song,
+    required this.isCurrent,
+    required this.isPlaying,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final artworkSize = (screenWidth - 92).clamp(210.0, 330.0).toDouble();
+
+    return AppGlassCard(
+      padding: EdgeInsets.zero,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: LinearGradient(
+            colors: [
+              AppColors.accent.withValues(alpha: 0.18),
+              AppColors.card.withValues(alpha: 0.76),
+              const Color(0xFF071018).withValues(alpha: 0.82),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                _LiveBadge(isPlaying: isCurrent && isPlaying),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.line),
+                  ),
+                  child: const Text(
+                    'DETAIL TRACK',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: artworkSize + 32,
+                  height: artworkSize + 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.ink.withValues(alpha: 0.4),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.28),
+                        blurRadius: 52,
+                        spreadRadius: 8,
+                      ),
+                    ],
+                  ),
+                ),
+                AnimatedScale(
+                  scale: isCurrent && isPlaying ? 1 : 0.97,
+                  duration: const Duration(milliseconds: 280),
+                  curve: Curves.easeOutCubic,
+                  child: SongArtwork(
+                    source: song.displayCover,
+                    size: artworkSize,
+                    borderRadius: BorderRadius.circular(34),
+                  ),
+                ),
+                Positioned(
+                  right: 18,
+                  bottom: 16,
+                  child: Container(
+                    width: 58,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      color: AppColors.accentHot,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.ink, width: 4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.accentHot.withValues(alpha: 0.38),
+                          blurRadius: 24,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      isCurrent && isPlaying
+                          ? Icons.graphic_eq_rounded
+                          : Icons.music_note_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            Text(
+              song.title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                height: 1.05,
+              ),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              song.artist,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.accentHot,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _MetricChip(
+                  icon: Icons.play_arrow_rounded,
+                  label: '${song.plays} plays',
+                ),
+                _MetricChip(
+                  icon: song.isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  label: '${song.likes} likes',
+                  active: song.isLiked,
+                ),
+                const _MetricChip(
+                  icon: Icons.touch_app_rounded,
+                  label: 'tap actions',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LiveBadge extends StatelessWidget {
+  final bool isPlaying;
+
+  const _LiveBadge({required this.isPlaying});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: isPlaying
+            ? AppColors.accent.withValues(alpha: 0.22)
+            : Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isPlaying ? AppColors.accentHot : AppColors.line,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPlaying ? Icons.equalizer_rounded : Icons.album_rounded,
+            size: 15,
+            color: isPlaying ? AppColors.accentHot : AppColors.muted,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            isPlaying ? 'LIVE PLAYING' : 'READY TO PLAY',
+            style: TextStyle(
+              color: isPlaying ? AppColors.cream : AppColors.muted,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailActionDock extends StatelessWidget {
+  final bool isPlaying;
+  final bool isLiked;
+  final VoidCallback onPlay;
+  final VoidCallback onLike;
+  final VoidCallback onPlaylist;
+
+  const _DetailActionDock({
+    required this.isPlaying,
+    required this.isLiked,
+    required this.onPlay,
+    required this.onLike,
+    required this.onPlaylist,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppGlassCard(
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: onPlay,
+              icon: Icon(
+                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              ),
+              label: Text(isPlaying ? 'Sedang Diputar' : 'Putar Sekarang'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _ActionPill(
+                  label: isLiked ? 'Disukai' : 'Like',
+                  icon: isLiked
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  active: isLiked,
+                  onTap: onLike,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _ActionPill(
+                  label: 'Playlist',
+                  icon: Icons.playlist_add_rounded,
+                  onTap: onPlaylist,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionPill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool active;
+
+  const _ActionPill({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+        decoration: BoxDecoration(
+          color: active
+              ? AppColors.accent.withValues(alpha: 0.22)
+              : AppColors.cardSoft.withValues(alpha: 0.78),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: active ? AppColors.accentHot : AppColors.line,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: active ? AppColors.accentHot : AppColors.cream,
+            ),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MetricChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -682,43 +994,6 @@ class _MetricChip extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RoundActionButton extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool active;
-
-  const _RoundActionButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.active = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          width: 52,
-          height: 52,
-          decoration: BoxDecoration(
-            color: active ? AppColors.accent : AppColors.card,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: active ? AppColors.accentHot : AppColors.line,
-            ),
-          ),
-          child: Icon(icon, color: active ? Colors.white : AppColors.cream),
-        ),
       ),
     );
   }
