@@ -28,16 +28,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _playSong(Song song, List<Song> queue) async {
-    final apiService = context.read<ApiService>();
     final audioProvider = context.read<AudioProvider>();
-
-    if (audioProvider.willStartNewPlayback(song)) {
-      try {
-        await apiService.recordPlay(song.id);
-      } catch (_) {
-        // History tracking should not block playback.
-      }
-    }
 
     if (!mounted) {
       return;

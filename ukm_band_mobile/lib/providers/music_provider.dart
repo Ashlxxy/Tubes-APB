@@ -62,6 +62,17 @@ class MusicProvider with ChangeNotifier {
 
   Future<void> refresh() => load(force: true);
 
+  Future<void> recordPlay(Song song) async {
+    try {
+      await _apiService.recordPlay(song.id);
+      final history = await _apiService.fetchHistory();
+      _history = history;
+      notifyListeners();
+    } catch (_) {
+      // Ignore
+    }
+  }
+
   Future<Song> toggleLike(Song song) async {
     final previous = _findSong(song.id) ?? song;
     final optimistic = previous.copyWith(

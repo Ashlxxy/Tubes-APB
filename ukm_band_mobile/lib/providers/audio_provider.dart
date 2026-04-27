@@ -13,6 +13,8 @@ class AudioProvider with ChangeNotifier {
   Duration _position = Duration.zero;
   String? _playbackError;
 
+  void Function(Song)? onSongPlayed;
+
   AudioProvider() {
     _audioPlayer.onPlayerStateChanged.listen((state) {
       _isPlaying = state == PlayerState.playing;
@@ -108,6 +110,8 @@ class AudioProvider with ChangeNotifier {
     _duration = Duration.zero;
     notifyListeners();
 
+    onSongPlayed?.call(song);
+
     _isLoading = true;
     _playbackError = null;
     notifyListeners();
@@ -181,6 +185,19 @@ class AudioProvider with ChangeNotifier {
     var sourcePath = rawPath.trim();
 
     if (sourcePath.startsWith('http://') || sourcePath.startsWith('https://')) {
+      return UrlSource(sourcePath);
+    }
+
+    if (kIsWeb) {
+      if (!sourcePath.startsWith('assets/')) {
+        if (sourcePath.startsWith('/')) {
+          sourcePath = sourcePath.substring(1);
+        }
+        if (sourcePath.startsWith('public/')) {
+          sourcePath = sourcePath.substring(7);
+        }
+        sourcePath = 'assets/$sourcePath';
+      }
       return UrlSource(sourcePath);
     }
 

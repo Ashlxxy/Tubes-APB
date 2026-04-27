@@ -85,16 +85,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _playSong(Song song, List<Song> queue) async {
-    final apiService = context.read<ApiService>();
     final audioProvider = context.read<AudioProvider>();
-
-    if (audioProvider.willStartNewPlayback(song)) {
-      try {
-        await apiService.recordPlay(song.id);
-      } catch (_) {
-        // Playback should continue even when tracking fails.
-      }
-    }
 
     if (!mounted) {
       return;

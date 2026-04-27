@@ -126,6 +126,17 @@ class ApiService {
       'plays': 120,
       'likes': 45,
     },
+    {
+      'id': 8,
+      'title': 'Coral',
+      'artist': 'Coral',
+      'description':
+          'Sebuah karya musik yang memikat, membawa pendengar ke dalam suasana yang mendalam.',
+      'cover_path': 'assets/img/c2.jpg',
+      'file_path': 'assets/songs/Coral.wav',
+      'plays': 95,
+      'likes': 38,
+    },
   ];
 
   String? _token;

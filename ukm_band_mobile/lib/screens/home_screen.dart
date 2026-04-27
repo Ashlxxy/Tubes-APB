@@ -35,16 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _playSong(Song song, List<Song> queue) async {
-    final apiService = context.read<ApiService>();
     final audioProvider = context.read<AudioProvider>();
-
-    if (audioProvider.willStartNewPlayback(song)) {
-      try {
-        await apiService.recordPlay(song.id);
-      } catch (_) {
-        // Keep playback running even if tracking API fails.
-      }
-    }
 
     if (!mounted) {
       return;

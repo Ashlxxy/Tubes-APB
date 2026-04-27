@@ -20,9 +20,16 @@ void main() {
             return authProvider;
           },
         ),
-        ChangeNotifierProvider<AudioProvider>(create: (_) => AudioProvider()),
         ChangeNotifierProvider<MusicProvider>(
           create: (context) => MusicProvider(context.read<ApiService>()),
+        ),
+        ChangeNotifierProxyProvider<MusicProvider, AudioProvider>(
+          create: (_) => AudioProvider(),
+          update: (_, music, audio) {
+            audio ??= AudioProvider();
+            audio.onSongPlayed = music.recordPlay;
+            return audio;
+          },
         ),
       ],
       child: const UKMBandApp(),

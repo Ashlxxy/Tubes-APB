@@ -92,16 +92,7 @@ class _SongDetailScreenState extends State<SongDetailScreen> {
   }
 
   Future<void> _play(Song song, List<Song> queue) async {
-    final api = context.read<ApiService>();
     final audio = context.read<AudioProvider>();
-
-    if (audio.willStartNewPlayback(song)) {
-      try {
-        await api.recordPlay(song.id);
-      } catch (_) {
-        // Playback must not depend on analytics/history tracking.
-      }
-    }
 
     if (!mounted) {
       return;
